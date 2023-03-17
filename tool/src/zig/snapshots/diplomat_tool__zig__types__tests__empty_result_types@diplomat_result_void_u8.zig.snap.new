@@ -1,0 +1,14 @@
+---
+source: tool/src/zig/types.rs
+expression: out_texts.get(out).unwrap()
+
+---
+pub const diplomat_runtime = @import("diplomat_runtime.zig")
+
+pub const diplomat_result_void_u8 = extern struct {
+    diplomat_result_void_u8: union {
+        err: u8,
+    },
+    is_ok: bool,
+};
+

@@ -17,6 +17,8 @@ pub mod dart;
 pub mod dotnet;
 #[doc(hidden)]
 pub mod js;
+#[doc(hidden)]
+pub mod zig;
 
 mod docs_util;
 mod layout;
@@ -175,6 +177,7 @@ pub fn gen(
                 }
             }
         }
+        "zig" => zig::gen_bindings(&env, &mut out_texts).unwrap(),
         o => panic!("Unknown target: {}", o),
     }
 
@@ -224,6 +227,7 @@ pub fn gen(
             }
             "c" => todo!("Docs generation for C"),
             "dotnet" => todo!("Docs generation for .NET?"),
+            "zig" => todo!("Docs generation for Zig"),
             o => panic!("Unknown target: {}", o),
         }
 

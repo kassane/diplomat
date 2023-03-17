@@ -1,0 +1,16 @@
+---
+source: tool/src/zig/types.rs
+expression: out_texts.get(out).unwrap()
+
+---
+pub const diplomat_runtime = @import("diplomat_runtime.zig")
+
+pub const MyStruct = opaque{};
+pub const diplomat_result_box_MyStruct_u8 = extern struct {
+    diplomat_result_box_MyStruct_u8: union {
+        ok: *MyStruct,
+        err: u8,
+    },
+    is_ok: bool,
+};
+
