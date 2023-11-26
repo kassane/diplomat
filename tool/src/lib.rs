@@ -17,6 +17,8 @@ pub mod dart;
 pub mod dotnet;
 #[doc(hidden)]
 pub mod js;
+#[doc(hidden)]
+pub mod d2;
 
 mod docs_util;
 mod layout;
@@ -175,6 +177,7 @@ pub fn gen(
                 }
             }
         }
+        "d2" => d2::gen_bindings(&env, &mut out_texts).unwrap(),
         o => panic!("Unknown target: {}", o),
     }
 
@@ -223,6 +226,7 @@ pub fn gen(
                     .unwrap()
             }
             "c" => todo!("Docs generation for C"),
+            "d2" => todo!("Docs generation for D"),
             "dotnet" => todo!("Docs generation for .NET?"),
             o => panic!("Unknown target: {}", o),
         }
