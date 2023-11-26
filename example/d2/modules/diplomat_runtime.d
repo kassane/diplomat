@@ -34,27 +34,6 @@ DiplomatWriteable WriteableFromString(ref string string_) { // @suppress(dscanne
   return w;
 }
 
-// enum string MAKE_SLICE_VIEW(string name, string c_ty) = `\
-//     struct Diplomat##name##View { \
-//         const (c_ty)* data; \
-//         size_t len; \
-//     }`;
-
-// mixin(MAKE_SLICE_VIEW!(`I8`, `byte`));
-// mixin(MAKE_SLICE_VIEW!(`U8`, `ubyte`));
-// mixin(MAKE_SLICE_VIEW!(`I16`, `short`));
-// mixin(MAKE_SLICE_VIEW!(`U16`, `ushort`));
-// mixin(MAKE_SLICE_VIEW!(`I32`, `int`));
-// mixin(MAKE_SLICE_VIEW!(`U32`, `uint`));
-// mixin(MAKE_SLICE_VIEW!(`I64`, `long`));
-// mixin(MAKE_SLICE_VIEW!(`U64`, `ulong`));
-// mixin(MAKE_SLICE_VIEW!(`Isize`, `intptr_t`));
-// mixin(MAKE_SLICE_VIEW!(`Usize`, `size_t`));
-// mixin(MAKE_SLICE_VIEW!(`F32`, `float`));
-// mixin(MAKE_SLICE_VIEW!(`F64`, `double`));
-// mixin(MAKE_SLICE_VIEW!(`Bool`, `bool`));
-// mixin(MAKE_SLICE_VIEW!(`Char`, `char`));
-
 class span(T, size_t N) // @suppress(dscanner.style.phobos_naming_convention)
 {
     this(T* data)
