@@ -34,38 +34,37 @@ DiplomatWriteable WriteableFromString(ref string string_) { // @suppress(dscanne
   return w;
 }
 
-class span(T, size_t N) // @suppress(dscanner.style.phobos_naming_convention)
+extern (C++,class)
+struct span(T)
 {
-    this(T* data)
-    {
-        data_ = data;
-        size_ = N;
-    }
 
-    this(T[N] args...)
+    private T* data_;
+    private size_t size_;
+    public this(T* data, size_t size)
     {
-        this[] = args[];
+        data_ = (data);
+        size_ = size;
     }
-
-    this(ref T[] arr)
-    {
-        data ~= cast(T*) arr.ptr;
-        size_ = N;
-    }
-
 pure nothrow @nogc:
-
-    T* data() const @safe
+    public T* data() @safe
     {
-        return data_;
+        return this.data_;
     }
 
-    size_t size() const @safe
+    public size_t size() const @safe
     {
-        return size_;
+        return this.size_;
     }
 
-private:
-    T* data_;
-    size_t size_;
+}
+
+unittest {
+    import std.stdio;
+    auto a = [0, 1, 2, 3, 4, 5, 6, 7, 8];
+    span!(int) b = span!(int)(a.ptr, (a).sizeof);
+
+    assert(b.size == (a).sizeof);
+    assert(b.data[1] == a[1]);
+    writefln("First value: %d", b.data[1]);
+    writefln("Size: %d", b.size);
 }
