@@ -34,38 +34,124 @@ DiplomatWriteable WriteableFromString(ref string string_) { // @suppress(dscanne
   return w;
 }
 
-class span(T, size_t N) // @suppress(dscanner.style.phobos_naming_convention)
+import core.stdcpp.xutility : StdNamespace;
+
+extern (C++, (StdNamespace)):
+extern (C++, class) struct span(ElementType, size_t Extent)
 {
-    this(T* data)
-    {
-        data_ = data;
-        size_ = N;
-    }
 
-    this(T[N] args...)
-    {
-        this[] = args[];
-    }
+    extern (C++)
+    alias element_type = ElementType;
 
-    this(ref T[] arr)
-    {
-        data ~= cast(T*) arr.ptr;
-        size_ = N;
-    }
+    extern (C++)
+    alias size_type = size_t;
+
+    extern (C++)
+    alias difference_type = ptrdiff_t;
+
+    extern (C++)
+    alias pointer = element_type*;
+
+    extern (C++)
+    alias const_pointer = const(element_type)*;
 
 pure nothrow @nogc:
 
-    T* data() const @safe
+    // public extern (C++)
+    // span!(element_type, Count) first(size_t Count)();
+
+    // public extern (C++)
+    // span!(element_type, Count) last(size_t Count)();
+
+    private element_type* data_;
+    private size_type size_;
+    
+    // public this();
+    public this(ElementType* data)
     {
-        return data_;
+        data_ = (data);
+        size_ = Extent;
     }
 
-    size_t size() const @safe
+    // (default) // copy ctor
+    // public this(ref const(span!(ElementType, Extent)) other) const ;
+
+    // (default) 
+    // public ref span!(ElementType, Extent) opAssign(ref const(span!(ElementType, Extent)) other) const ;
+
+    extern (C++)
+    public size_type size() @safe const
     {
         return size_;
     }
 
-private:
-    T* data_;
-    size_t size_;
+    extern (C++)
+    public size_type size_bytes() const
+    {
+        return size * element_type.sizeof;
+    }
+
+    extern (C++)
+    public bool empty() @safe const
+    {
+        return (size_ == 0);
+    }
+
+    // extern (C++)
+    // public ref element_type opIndex(size_type idx) const;
+    extern (C++)
+    public ref element_type front() @safe
+    {
+        return data_[0];
+    }
+
+    extern (C++)
+    public ref element_type back()
+    {
+        return data_[size() - 1];
+    }
+
+    extern (C++)
+    public element_type* data() @safe
+    {
+        return data_;
+    }
+
+    extern (C++)
+    public int begin() @safe const
+    {
+        return data_[0];
+    }
+
+    extern (C++)
+    public int end() @trusted
+    {
+        return data_[data.sizeof];
+    }
+
+    extern (C++)
+    public int rbegin() @trusted
+    {
+        return end();
+    }
+
+    extern (C++)
+    public int rend() @safe const
+    {
+        return begin();
+    }
+
+}
+
+unittest {
+    import core.stdc.stdio : printf;
+    
+    int[10] a = [34, 56, 78, 23, 1, 0, 54, 94, 62, 5];
+    span!(int, 10) b = span!(int, 10)(a.ptr);
+
+    assert(b.size() == (a).length);
+    assert(b.data[1] == a[1]);
+    printf("First value: %d", b.rend());
+    printf("\nSize: %ld", b.size_bytes());
+    printf("\nIsEmpty? %d\n", cast(int) b.empty());
 }
