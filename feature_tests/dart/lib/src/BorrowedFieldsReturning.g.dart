@@ -12,7 +12,6 @@ final class _BorrowedFieldsReturningFfi extends ffi.Struct {
 final class BorrowedFieldsReturning {
   final _BorrowedFieldsReturningFfi _underlying;
 
-  // ignore: unused_element
   BorrowedFieldsReturning._(this._underlying);
 
   factory BorrowedFieldsReturning() {
@@ -22,12 +21,12 @@ final class BorrowedFieldsReturning {
     return result;
   }
 
-  String get bytes => _underlying.bytes._asDart;
+  String get bytes => Utf8Decoder().convert(_underlying.bytes._pointer.asTypedList(_underlying.bytes._length));
   set bytes(String bytes) {
-    final alloc = ffi2.calloc;
-    alloc.free(_underlying.bytes._bytes);
-    final bytesSlice = _SliceUtf8._fromDart(bytes, alloc);
-    _underlying.bytes = bytesSlice;
+    ffi2.calloc.free(_underlying.bytes._pointer);
+    final bytesView = bytes.utf8View;
+    _underlying.bytes._pointer = bytesView.pointer(ffi2.calloc);
+    _underlying.bytes._length = bytesView.length;
   }
 
   @override

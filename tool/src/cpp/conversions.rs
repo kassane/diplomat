@@ -203,7 +203,10 @@ pub fn gen_rust_to_cpp<W: Write>(
             todo!("Returning references from Rust to C++ is not currently supported")
         }
         ast::TypeName::Writeable => panic!("Returning writeables is not supported"),
-        ast::TypeName::StrReference(_, ast::StringEncoding::UnvalidatedUtf8) => {
+        ast::TypeName::StrReference(
+            _,
+            ast::StringEncoding::UnvalidatedUtf8 | ast::StringEncoding::Utf8,
+        ) => {
             let raw_value_id = format!("diplomat_str_raw_{path}");
             writeln!(out, "capi::DiplomatStringView {raw_value_id} = {cpp};").unwrap();
 
@@ -216,12 +219,12 @@ pub fn gen_rust_to_cpp<W: Write>(
         }
         ast::TypeName::StrReference(_, ast::StringEncoding::UnvalidatedUtf16) => {
             let raw_value_id = format!("diplomat_slice_raw_{path}");
-            writeln!(out, "capi::DiplomatU16View {raw_value_id} = {cpp};").unwrap();
+            writeln!(out, "capi::DiplomatU16StringView {raw_value_id} = {cpp};").unwrap();
 
             let span = &library_config.span.expr;
             writeln!(
                 out,
-                "{span}<const uint16_t> slice({raw_value_id}.data, {raw_value_id}.len);"
+                "{span}<const char16_t> slice({raw_value_id}.data, {raw_value_id}.len);"
             )
             .unwrap();
             "slice".into()
