@@ -15,15 +15,7 @@ final class _ICU4XFixedDecimalFormatterOptionsFfi extends ffi.Struct {
 final class ICU4XFixedDecimalFormatterOptions {
   final _ICU4XFixedDecimalFormatterOptionsFfi _underlying;
 
-  // ignore: unused_element
   ICU4XFixedDecimalFormatterOptions._(this._underlying);
-
-  factory ICU4XFixedDecimalFormatterOptions() {
-    final pointer = ffi2.calloc<_ICU4XFixedDecimalFormatterOptionsFfi>();
-    final result = ICU4XFixedDecimalFormatterOptions._(pointer.ref);
-    _callocFree.attach(result, pointer.cast());
-    return result;
-  }
 
   ICU4XFixedDecimalGroupingStrategy get groupingStrategy => ICU4XFixedDecimalGroupingStrategy.values[_underlying.groupingStrategy];
   set groupingStrategy(ICU4XFixedDecimalGroupingStrategy groupingStrategy) {

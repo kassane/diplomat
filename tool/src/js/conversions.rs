@@ -121,20 +121,20 @@ pub fn gen_value_js_to_rust<'env>(
             // clean this up.
             if let ast::TypeName::PrimitiveSlice(.., prim) = typ {
                 pre_logic.push(format!(
-                    "const {param_name_buf} = diplomatRuntime.DiplomatBuf.slice(wasm, {param_name}, {align});",
-                    align = layout::primitive_size_alignment(*prim).align()
+                    "const {param_name_buf} = diplomatRuntime.DiplomatBuf.slice(wasm, {param_name}, {rust_type:?});",
+                    rust_type = prim.to_string(),
                 ));
-            } else if matches!(
-                typ,
-                ast::TypeName::StrReference(_, ast::StringEncoding::UnvalidatedUtf16)
-            ) {
+            } else if let ast::TypeName::StrReference(_, encoding) = typ {
                 pre_logic.push(format!(
-                    "const {param_name_buf} = diplomatRuntime.DiplomatBuf.str16(wasm, {param_name}, 2);",
+                    "const {param_name_buf} = diplomatRuntime.DiplomatBuf.{}(wasm, {param_name});",
+                    match encoding {
+                        ast::StringEncoding::UnvalidatedUtf8 | ast::StringEncoding::Utf8 => "str8",
+                        ast::StringEncoding::UnvalidatedUtf16 => "str16",
+                        _ => unreachable!("unknown AST/HIR variant"),
+                    }
                 ));
             } else {
-                pre_logic.push(format!(
-                    "const {param_name_buf} = diplomatRuntime.DiplomatBuf.str8(wasm, {param_name});"
-                ));
+                unreachable!("unknown AST/HIR variant");
             }
 
             invocation_params.push(format!("{param_name_buf}.ptr"));
@@ -144,6 +144,7 @@ pub fn gen_value_js_to_rust<'env>(
                 .as_named()
                 .and_then(|current| borrowed_current_to_root.get(current))
             {
+                post_logic.push(format!("{param_name_buf}.garbageCollect();"));
                 entries.entry(named).or_default().push(param_name_buf);
             } else if lifetime == &ast::Lifetime::Static {
                 post_logic.push(format!("{param_name_buf}.leak();"));
@@ -513,8 +514,8 @@ impl fmt::Display for InvocationIntoJs<'_> {
                     ReturnTypeForm::Empty => unreachable!(),
                 }
             }
-            ast::TypeName::StrReference(_, ast::StringEncoding::UnvalidatedUtf8) => self.display_slice(SliceKind::Str).fmt(f),
-                ast::TypeName::StrReference(_, ast::StringEncoding::UnvalidatedUtf16) => self.display_slice(SliceKind::Str16).fmt(f),
+            ast::TypeName::StrReference(_, ast::StringEncoding::UnvalidatedUtf8 | ast::StringEncoding::Utf8) => self.display_slice(SliceKind::Str).fmt(f),
+            ast::TypeName::StrReference(_, ast::StringEncoding::UnvalidatedUtf16) => self.display_slice(SliceKind::Str16).fmt(f),
             ast::TypeName::PrimitiveSlice(.., prim) => {
                 self.display_slice(SliceKind::Primitive(prim.into())).fmt(f)
             }
@@ -540,7 +541,11 @@ impl SliceKind {
             SliceKind::Str16 => write!(f, "diplomatRuntime.readString16(wasm, {ptr}, {size})"),
             SliceKind::Primitive(prim) => match prim {
                 JsPrimitive::Number(num) => {
-                    write!(f, "new {num}Array(wasm.memory.buffer, ptr, size)")
+                    // TODO(#383): can we borrow this?
+                    write!(
+                        f,
+                        "{num}Array.from(new {num}Array(wasm.memory.buffer, ptr, size))"
+                    )
                 }
                 JsPrimitive::Bool => todo!("Handle returning `&[bool]`."),
                 JsPrimitive::Char => todo!("Handle returning `&[char]`."),
@@ -789,9 +794,10 @@ impl fmt::Display for UnderlyingIntoJs<'_> {
                 todo!("Result in a buffer")
             }
             ast::TypeName::Writeable => todo!("Writeable in a buffer"),
-            ast::TypeName::StrReference(_, ast::StringEncoding::UnvalidatedUtf8) => {
-                self.display_slice(SliceKind::Str).fmt(f)
-            }
+            ast::TypeName::StrReference(
+                _,
+                ast::StringEncoding::UnvalidatedUtf8 | ast::StringEncoding::Utf8,
+            ) => self.display_slice(SliceKind::Str).fmt(f),
             ast::TypeName::StrReference(_, ast::StringEncoding::UnvalidatedUtf16) => {
                 self.display_slice(SliceKind::Str16).fmt(f)
             }
