@@ -1,8 +1,6 @@
 module diplomat_runtime;
 
 extern (C):
-__gshared:
-
 struct DiplomatWriteable
 {
     void* context = void;
@@ -13,7 +11,7 @@ struct DiplomatWriteable
     bool function(DiplomatWriteable*, size_t) grow = void;
 }
 
-extern(C) DiplomatWriteable diplomat_simple_writeable(char* buf, size_t buf_size);
+DiplomatWriteable diplomat_simple_writeable(char* buf, size_t buf_size) @safe;
 
 struct DiplomatStringView
 {
@@ -21,137 +19,180 @@ struct DiplomatStringView
     size_t len = void;
 }
 
-DiplomatWriteable WriteableFromString(ref string string_) { // @suppress(dscanner.style.phobos_naming_convention)
-  DiplomatWriteable w;
-  w.context = &string_;
-  w.buf = &string_[0];
-  w.len = string_.length;
-  // Same as length, since C++ strings are not supposed
-  // to be written to past their len; you resize *first*
-  w.cap = string_.length;
-  w.flush = Flush;
-  w.grow = Grow;
-  return w;
+void Flush(DiplomatWriteable* w) {
+    string str = cast(string*) w.context;
+    str.length = w.len;
+}
+
+import core.stdc.stdint : uintptr_t;
+bool Grow(DiplomatWriteable* w, uintptr_t requested) {
+    string str = cast(string*) w.context;
+    str.length = requested;
+    w.cap = string.length;
+    w.buf = &string[0];
+    return true;
+}
+
+DiplomatWriteable WriteableFromString(ref string str) {
+    DiplomatWriteable w;
+    w.context = &str;
+    w.buf = str.ptr;
+    w.len = str.length;
+    w.cap = str.length;
+    w.flush = &Flush;
+    w.grow = &Grow;
+    return w;
+}
+
+extern(D):
+template WriteableTrait(T) {
+    static DiplomatWriteable Construct(T t);
+}
+
+template WriteableTrait(string) {
+    static DiplomatWriteable Construct(string t) {
+        return WriteableFromString(t);
+    }
+}
+
+import std.typecons : Nullable;
+struct Ok(T)
+{
+
+    private T value;
+
+    this(T val)
+    {
+        value = val;
+    }
+
+}
+
+struct Err(T)
+{
+
+    private T error;
+
+    this(T err)
+    {
+        error = err;
+    }
+
+}
+
+struct Result(T, E)
+{
+
+    private Nullable!(Ok!T) okVal;
+    private Nullable!(Err!E) errVal;
+
+    static Result!(T, E) ok(T value)
+    {
+        auto res = Result!(T, E)();
+        res.okVal = Ok!T(value);
+        return res;
+    }
+
+    static Result!(T, E) err(E error)
+    {
+        auto res = Result!(T, E)();
+        res.errVal = Err!E(error);
+        return res;
+    }
+}
+
+unittest
+{
+    Result!(int, string) res1 = Result!(int, string).ok(10);
+    Result!(int, string) res2 = Result!(int, string).err("error");
+
+    assert(res1.okVal.get.value == 10);
+    assert(res2.errVal.get.error == "error");
 }
 
 import core.stdcpp.xutility : StdNamespace;
-
 extern (C++, (StdNamespace)):
-extern (C++, class) struct span(ElementType, size_t Extent)
+enum dynamic_extent = size_t.max;
+extern (C++, class) struct span(ElementType, size_t Extent = dynamic_extent)
 {
 
-    extern (C++)
     alias element_type = ElementType;
-
-    extern (C++)
     alias size_type = size_t;
-
-    extern (C++)
     alias difference_type = ptrdiff_t;
-
-    extern (C++)
     alias pointer = element_type*;
-
-    extern (C++)
     alias const_pointer = const(element_type)*;
-
-pure nothrow @nogc:
-
-    // public extern (C++)
-    // span!(element_type, Count) first(size_t Count)();
-
-    // public extern (C++)
-    // span!(element_type, Count) last(size_t Count)();
 
     private element_type* data_;
     private size_type size_;
     
-    // public this();
-    public this(ElementType* data)
+    this(ElementType* data)
     {
         data_ = (data);
         size_ = Extent;
     }
 
-    // (default) // copy ctor
-    // public this(ref const(span!(ElementType, Extent)) other) const ;
+pure nothrow @nogc:
 
-    // (default) 
-    // public ref span!(ElementType, Extent) opAssign(ref const(span!(ElementType, Extent)) other) const ;
-
-    extern (C++)
-    public size_type size() @safe const
+    size_type size() @safe const
     {
         return size_;
     }
 
-    extern (C++)
-    public size_type size_bytes() const
+    size_type size_bytes() const
     {
         return size * element_type.sizeof;
     }
 
-    extern (C++)
-    public bool empty() @safe const
+    bool empty() @safe const
     {
         return (size_ == 0);
     }
 
-    // extern (C++)
-    // public ref element_type opIndex(size_type idx) const;
-    extern (C++)
-    public ref element_type front() @safe
+    ref element_type front() @safe
     {
         return data_[0];
     }
 
-    extern (C++)
-    public ref element_type back()
+    ref element_type back()
     {
         return data_[size() - 1];
     }
 
-    extern (C++)
-    public element_type* data() @safe
+    element_type* data() @safe
     {
         return data_;
     }
 
-    extern (C++)
-    public int begin() @safe const
+    int begin() @safe const
     {
         return data_[0];
     }
 
-    extern (C++)
-    public int end() @trusted
+    int end() @trusted
     {
         return data_[data.sizeof];
     }
 
-    extern (C++)
-    public int rbegin() @trusted
+    int rbegin() @trusted
     {
         return end();
     }
 
-    extern (C++)
-    public int rend() @safe const
+    int rend() @safe const
     {
         return begin();
     }
-
 }
 
 unittest {
-    import core.stdc.stdio : printf;
-    
     int[10] a = [34, 56, 78, 23, 1, 0, 54, 94, 62, 5];
     span!(int, 10) b = span!(int, 10)(a.ptr);
 
-    assert(b.size() == (a).length);
-    assert(b.data[1] == a[1]);
-    printf("First value: %d", b.rend());
-    printf("\nSize: %ld", b.size_bytes());
-    printf("\nIsEmpty? %d\n", cast(int) b.empty());
+    assert(b.size == (a).length);
+    assert(b.begin == a[0]);
+
+    // import core.stdc.stdio : printf;
+    // printf("First value: %d", b.rend());
+    // printf("\nSize: %ld", b.size_bytes());
+    // printf("\nIsEmpty? %d\n", cast(int) b.empty());
 }
